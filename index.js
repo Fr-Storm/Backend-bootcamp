@@ -146,7 +146,7 @@ app.get("/tasks", async (req, res) => {
 app.post("/tasks", validateTask, async (req, res) => {
   const error = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ error: error.array() });
+    return res.status(400).json({ errors: errors.array() });
   }
   const task = new Task(req.body);
   await task.save();
