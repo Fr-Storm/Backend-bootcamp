@@ -79,7 +79,7 @@ app.post(
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).json({ error: error.array() });
       }
 
       const { username, password } = req.body;
