@@ -93,7 +93,7 @@ app.post(
       // Create new user
       const user = new User({
         username,
-        password, // In production, you should hash the password
+        password,
       });
 
       await user.save();
@@ -144,15 +144,25 @@ app.get("/tasks", async (req, res) => {
 
 // creating a new taks
 app.post("/tasks", validateTask, async (req, res) => {
-  const error = validationResult(req);
+  const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-  const task = new Task(req.body);
-  await task.save();
-  res.status(201).json(task);
-});
 
+  try {
+    const task = new Task({
+      title: req.body.title,
+      completed: req.body.completed,
+      userId: req.user.id,
+    });
+
+    await task.save();
+    res.status(201).json(task);
+  } catch (err) {
+    console.error("Error creating task:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 // Getting a task based upon the id.
 // Get Task by ID
 app.get("/tasks/:id", async (req, res) => {
