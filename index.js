@@ -34,6 +34,7 @@ const connectDB = async () => {
 const taskSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   completed: { type: Boolean, default: false },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
@@ -131,15 +132,19 @@ app.post("/login", async (req, res) => {
 });
 
 // Fetch taks
-app.get("/tasks", async (req, res) => {
-  const cachekey = `all_tasks_${req.user.id}`;
-  const cacheTasks = cache.get(cachekey);
+app.get("/tasks", auth, async (req, res) => {
+  try {
+    const cachekey = `all_tasks_${req.user.id}`;
+    const cacheTasks = cache.get(cachekey);
+    if (cacheTasks) return res.json(cacheTasks);
 
-  if (cacheTasks) return res.json(cacheTasks);
-
-  const tasks = await Task.find({ userId: req.user.id });
-  cache.set(cachekey, tasks);
-  res.json(tasks);
+    const tasks = await Task.find({ userId: req.user.id });
+    cache.set(cachekey, tasks);
+    res.json(tasks);
+  } catch (err) {
+    console.error("Error fetching tasks:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // creating a new taks
@@ -153,6 +158,7 @@ app.post("/tasks", validateTask, async (req, res) => {
     const task = new Task({
       title: req.body.title,
       completed: req.body.completed,
+      userId: req.user.id,
     });
 
     await task.save();
