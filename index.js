@@ -153,7 +153,6 @@ app.post("/tasks", validateTask, async (req, res) => {
     const task = new Task({
       title: req.body.title,
       completed: req.body.completed,
-      userId: req.user.id,
     });
 
     await task.save();
