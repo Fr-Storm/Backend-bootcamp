@@ -18,7 +18,7 @@ const cache = new NodeCache({ stdTTl: 600 });
 
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGO_URL;
+    const mongoURI = process.env.MONGO_URI;
 
     await mongoose.connect(mongoURI, {
       useNewUrlParser: true,
