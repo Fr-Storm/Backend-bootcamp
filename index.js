@@ -56,7 +56,7 @@ const validateTask = [
 
 // JWT middleware Authentication
 const auth = (req, res, next) => {
-  const token = req.header("Authorization")?.replace("Bearer ", " ");
+  const token = req.header("Authorization")?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Access denied" });
   try {
     const decode = jwt.verify(token, "secret-key");
@@ -79,7 +79,7 @@ app.post(
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ error: error.array() });
+        return res.status(400).json({ errors: errors.array() });
       }
 
       const { username, password } = req.body;
@@ -146,7 +146,7 @@ app.get("/tasks", async (req, res) => {
 app.post("/tasks", validateTask, async (req, res) => {
   const error = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ error: error.array });
+    return res.status(400).json({ error: error.array() });
   }
   const task = new Task(req.body);
   await task.save();
