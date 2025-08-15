@@ -18,14 +18,14 @@ const cache = new NodeCache({ stdTTl: 600 });
 
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGO_URI;
+    const mongoURI = process.env.MONGO_URL;
 
     await mongoose.connect(mongoURI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
   } catch (error) {
-    console.error("MongoDB connection error", error.message);
+    console.error("MongoDB connection error");
     process.exit(1);
   }
 };
@@ -34,7 +34,6 @@ const connectDB = async () => {
 const taskSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   completed: { type: Boolean, default: false },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
@@ -55,9 +54,9 @@ const validateTask = [
   body("completed").isBoolean(),
 ];
 
-// JWT middleware Authentication
+// JWT middleware auth
 const auth = (req, res, next) => {
-  const token = req.header("Authorization")?.replace("Bearer ", "");
+  const token = req.header("Authorization")?.replace("Bearer ", " ");
   if (!token) return res.status(401).json({ error: "Access denied" });
   try {
     const decode = jwt.verify(token, "secret-key");
@@ -131,44 +130,37 @@ app.post("/login", async (req, res) => {
   res.json({ token });
 });
 
-// Fetch taks
-app.get("/tasks", auth, async (req, res) => {
-  try {
-    const cachekey = `all_tasks_${req.user.id}`;
-    const cacheTasks = cache.get(cachekey);
-    if (cacheTasks) return res.json(cacheTasks);
+app.get("/tasks", async (req, res) => {
+  const cacheKey = "all_tasks";
+  const cachedTasks = cache.get(cacheKey);
 
-    const tasks = await Task.find({ userId: req.user.id });
-    cache.set(cachekey, tasks);
+  if (cachedTasks) {
+    return res.json(cachedTasks);
+  }
+
+  try {
+    const tasks = await Task.find(); // fetch all tasks without filtering
+    cache.set(cacheKey, tasks);
     res.json(tasks);
-  } catch (err) {
-    console.error("Error fetching tasks:", err);
-    res.status(500).json({ error: "Internal server error" });
+  } catch (error) {
+    console.error("Error fetching tasks:", error);
+    res.status(500).json({ error: "Failed to fetch tasks" });
   }
 });
+
 
 // creating a new task
-app.post("/tasks", auth, validateTask, async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+app.post("/tasks", validateTask, async (req, res) => {
+  const error = validationResult(req);
+  if (!error.isEmpty()) {
+    return res.status(400).json({ error: error.array });
   }
-
-  try {
-    const task = new Task({
-      title: req.body.title,
-      completed: req.body.completed,
-      userId: req.user.id,
-    });
-
-    await task.save();
-    res.status(201).json(task);
-  } catch (err) {
-    console.error("Error creating task:", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
+  const task = new Task(req.body);
+  await task.save();
+  res.status(201).json(task);
 });
-// Getting a task based upon the id.
+
+// Getting a task based upon the ID.
 // Get Task by ID
 app.get("/tasks/:id", async (req, res) => {
   try {
