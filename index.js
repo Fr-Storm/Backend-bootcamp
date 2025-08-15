@@ -147,8 +147,8 @@ app.get("/tasks", auth, async (req, res) => {
   }
 });
 
-// creating a new taks
-app.post("/tasks", validateTask, async (req, res) => {
+// creating a new task
+app.post("/tasks", auth, validateTask, async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
